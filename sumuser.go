@@ -26,11 +26,20 @@ const IDX_UPDATED_AT int = 9
 
 type DatesInWeek struct {
 	weekNumber string
-	dates      [7]string
 	dateTime   [7]time.Time
 }
 
 var startWeek DatesInWeek
+
+func GetDateOnly(dateTime time.Time) string {
+
+	y, m, d := dateTime.Date()
+	return fmt.Sprintf("%d-%d-%d", y, int(m), d)
+}
+
+func StripAllSpaces(originalString string) string {
+	return strings.ReplaceAll(originalString, " ", "")
+}
 
 func StripCurlyBrackets(originalString string) string {
 
@@ -59,8 +68,13 @@ func UpdateHeader(header []string, newHeader string) []string {
 	return append(header, newHeader)
 }
 
+func GenerateDatesForWeek(week string) DatesInWeek {
+
+	return DatesInWeek{}
+}
+
 // CalculateDateByWeek - Generates a string array of dates representing the week
-func CalculateDateByWeek() bool {
+func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 
 	file, err := os.Open(WEEKLY_LOG_FILE)
 	if err != nil {
@@ -88,13 +102,23 @@ func CalculateDateByWeek() bool {
 
 			// Strip the record of all brackets then tokenize so we can get to the 7 dates that make up the week
 			stepsRecord := StripAllBrackets(record[IDX_STEPS])
+			stepsRecord = StripAllSpaces(stepsRecord)
 			fmt.Println(stepsRecord)
 			stepTokens := strings.Split(stepsRecord, ",")
 
 			var ct int = 0
 			for i := 1; i < len(stepTokens); i += 2 {
 				dateTimeToken := strings.Split(stepTokens[i], ":")
-				startWeek.dates[ct] = dateTimeToken[1]
+				tempDate := strings.ReplaceAll(dateTimeToken[1], "\"", "")
+
+				// Create a Date object out of the string
+				startWeek.dateTime[ct], err = time.Parse(time.DateOnly, tempDate)
+				if err != nil {
+					log.Fatal("Could not parse time: ", err.Error())
+				}
+
+				fmt.Println(tempDate + " becomes: " + GetDateOnly(startWeek.dateTime[ct]))
+
 			}
 
 			return true
@@ -121,14 +145,16 @@ func ProcessRecord(user_id string, record []string) {
 	csvWriter := csv.NewWriter(outFile)
 	csvWriter.UseCRLF = false
 
-	weekNumber := record[IDX_WEEK]
+	//var flatRecord []string
+
+	//flatRecord = append(flatRecord, record[IDX_WEEK])
 
 }
 
 func main() {
 
 	// First scan the file to initialize our week and date range
-	if !CalculateDateByWeek() {
+	if !CalculateDateByWeek(&startWeek) {
 		// We couldn't figure it out
 		log.Fatal("Could not establish week and date ranges. ")
 	}
