@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -68,13 +69,24 @@ func UpdateHeader(header []string, newHeader string) []string {
 	return append(header, newHeader)
 }
 
-func GenerateDatesForWeek(week string) DatesInWeek {
+func NormalizeRecord(record []string) bool {
+	// All this does is log bad data
 
-	return DatesInWeek{}
+	v, err := strconv.Atoi(record[IDX_WEEK])
+
+	if err != nil || v < 0 {
+		fmt.Println("Invalid Week: " + record[IDX_WEEK])
+		return false
+	}
+
+	return true
 }
 
 // CalculateDateByWeek - Generates a string array of dates representing the week
 func CalculateDateByWeek(startWeek *DatesInWeek) bool {
+
+	found := false
+	lineCt := 0
 
 	file, err := os.Open(WEEKLY_LOG_FILE)
 	if err != nil {
@@ -87,16 +99,23 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 
 	for {
 		record, err := csvReader.Read()
+		lineCt++
+
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			fmt.Println("Error:", err)
+			fmt.Println("Input Error at line", lineCt, err)
 			continue
 		}
 
+		// Normalize record..look for garbage data
+		if !NormalizeRecord(record) {
+			fmt.Println("Discarding Record at line")
+		}
+
 		// Hopefully there is a week 0, with a steps entry somewhere in the file. Fatal if not
-		if record[IDX_WEEK] == "0" && len(record[IDX_STEPS]) > 0 {
+		if !found && record[IDX_WEEK] == "0" && len(record[IDX_STEPS]) > 0 {
 
 			startWeek.weekNumber = record[IDX_WEEK]
 
@@ -118,19 +137,46 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 				}
 
 				fmt.Println(tempDate + " becomes: " + GetDateOnly(startWeek.dateTime[ct]))
-
 			}
 
-			return true
+			found = true
 		}
 	}
 
-	return false
+	return found
 }
 
-func ProcessSteps(record string) string {
+type UserDailyStepData struct {
+	header []string
+	steps  int
+}
 
-	return record
+type UserDailyActiveData struct {
+	header []string
+}
+
+type UserDailySleepData struct {
+	header []string
+}
+
+type UserDailyCaloriesData struct {
+	header []string
+}
+
+type UserDailyHeartData struct {
+	header []string
+}
+
+type UserDailyData struct {
+	header       []string
+	id           string
+	weekNumber   string
+	user_id      string
+	stepsData    UserDailyStepData
+	activityData UserDailyActiveData
+	sleepData    UserDailySleepData
+	calorieData  UserDailyCaloriesData
+	heartData    UserDailyHeartData
 }
 
 func ProcessRecord(user_id string, record []string) {
@@ -145,10 +191,63 @@ func ProcessRecord(user_id string, record []string) {
 	csvWriter := csv.NewWriter(outFile)
 	csvWriter.UseCRLF = false
 
-	//var flatRecord []string
+	// Initialize a structure that represents all of the dates for this week.
+	currentWeekData := GenerateMapForWeek(record)
+	SummarizeSteps(currentWeekData, record[IDX_STEPS])
+	//SummarizeTimeActive(currentWeekData, record[IDX_TIME_ACTIVE])
+	//SummarizeSleep(currentWeekData, record[IDX_SLEEP])
+	//SummarizeHeartRate(currentWeekData, record[IDX_HEART_RATE])
+	//SummarizeCalorie(currentWeekData, record[IDX_CALORIES_IN])
 
-	//flatRecord = append(flatRecord, record[IDX_WEEK])
+}
 
+func GenerateMapForWeek(record []string) map[time.Time]UserDailyData {
+	m := make(map[time.Time]UserDailyData)
+
+	if len(record[IDX_STEPS]) == 0 {
+		panic("not done")
+	}
+
+	// Strip the record of all brackets then tokenize so we can get to the 7 dates that make up the week
+	stepsRecord := StripAllBrackets(record[IDX_STEPS])
+	stepsRecord = StripAllSpaces(stepsRecord)
+	stepTokens := strings.Split(stepsRecord, ",")
+
+	for i := 1; i < len(stepTokens); i += 2 {
+		dateTimeToken := strings.Split(stepTokens[i], ":")
+		tempDateString := strings.ReplaceAll(dateTimeToken[1], "\"", "")
+
+		// Create a Date object out of the string
+		tmpTime, err := time.Parse(time.DateOnly, tempDateString)
+		if err != nil {
+			log.Fatal("Could not parse time: ", err.Error())
+		}
+
+		fmt.Println(tempDateString + " becomes: " + GetDateOnly(tmpTime))
+	}
+
+	return m
+}
+
+func SummarizeCalorie(currentWeekData map[time.Time]UserDailyData, s string) {
+	fmt.Println("---------Summarizing Calorie Data--------- \n" + s)
+}
+
+func SummarizeHeartRate(currentWeekData map[time.Time]UserDailyData, s string) {
+
+	fmt.Println("--------Summarizing Heart Data--------- \n" + s)
+}
+
+func SummarizeSleep(currentWeekData map[time.Time]UserDailyData, s string) {
+	fmt.Println("---------Summarizing Sleep Data--------- \n" + s)
+}
+
+func SummarizeTimeActive(currentWeekData map[time.Time]UserDailyData, s string) {
+	fmt.Println("----------Summarizing Activity Data--------- \n" + s)
+}
+
+func SummarizeSteps(currentWeekData map[time.Time]UserDailyData, s string) {
+	fmt.Println("--------Summarizing Steps Data-------- \n" + s)
 }
 
 func main() {
