@@ -54,6 +54,10 @@ func StripSquareBrackets(originalString string) string {
 	return strings.ReplaceAll(x, "]", "")
 }
 
+func StripByString(originalString string, stripString string) string {
+	return strings.ReplaceAll(originalString, stripString, "")
+}
+
 func StripAllBrackets(originalString string) string {
 
 	x := StripCurlyBrackets(originalString)
@@ -119,24 +123,21 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 
 			startWeek.weekNumber = record[IDX_WEEK]
 
-			// Strip the record of all brackets then tokenize so we can get to the 7 dates that make up the week
-			stepsRecord := StripAllBrackets(record[IDX_STEPS])
-			stepsRecord = StripAllSpaces(stepsRecord)
-			fmt.Println(stepsRecord)
-			stepTokens := strings.Split(stepsRecord, ",")
+			// Get a tokenized represenation of the steps record for all 7 days  ["value:0","dateTime:2021-01-16",.......,"value:0","dateTime:2021-01-17",]
+			stepTokens := TokenizeSteps(record[IDX_STEPS])
 
 			var ct int = 0
 			for i := 1; i < len(stepTokens); i += 2 {
+
 				dateTimeToken := strings.Split(stepTokens[i], ":")
-				tempDate := strings.ReplaceAll(dateTimeToken[1], "\"", "")
 
 				// Create a Date object out of the string
-				startWeek.dateTime[ct], err = time.Parse(time.DateOnly, tempDate)
+				startWeek.dateTime[ct], err = time.Parse(time.DateOnly, dateTimeToken[1])
 				if err != nil {
 					log.Fatal("Could not parse time: ", err.Error())
 				}
 
-				fmt.Println(tempDate + " becomes: " + GetDateOnly(startWeek.dateTime[ct]))
+				fmt.Println(dateTimeToken[1] + " becomes: " + GetDateOnly(startWeek.dateTime[ct]))
 			}
 
 			found = true
@@ -201,52 +202,76 @@ func ProcessRecord(user_id string, record []string) {
 
 }
 
-func GenerateMapForWeek(record []string) map[time.Time]UserDailyData {
-	m := make(map[time.Time]UserDailyData)
+func TokenizeSteps(stepsRecord string) []string {
+
+	// Strip the record of all brackets then tokenize so we can get to the 7 dates that make up the week
+	s := StripAllBrackets(stepsRecord)
+	s = StripAllSpaces(s)
+	s = StripByString(s, "\"")
+	fmt.Println(s)
+	stepTokens := strings.Split(s, ",")
+	return stepTokens
+}
+
+func GenerateMapForWeek(record []string) map[string]UserDailyData {
+	m := make(map[string]UserDailyData)
 
 	if len(record[IDX_STEPS]) == 0 {
 		panic("not done")
 	}
 
-	// Strip the record of all brackets then tokenize so we can get to the 7 dates that make up the week
-	stepsRecord := StripAllBrackets(record[IDX_STEPS])
-	stepsRecord = StripAllSpaces(stepsRecord)
-	stepTokens := strings.Split(stepsRecord, ",")
+	// Get a tokenized represenation of the steps record for all 7 days  ["value:0","dateTime:2021-01-16",.......,"value:0","dateTime:2021-01-17"]
+	stepTokens := TokenizeSteps(record[IDX_STEPS])
+	stepsTotal := 0
 
 	for i := 1; i < len(stepTokens); i += 2 {
 		dateTimeToken := strings.Split(stepTokens[i], ":")
-		tempDateString := strings.ReplaceAll(dateTimeToken[1], "\"", "")
+		stepsValueToken := strings.Split(stepTokens[i-1], ":")
+
+		v, err := strconv.Atoi(stepsValueToken[1])
+		if err != nil || v < 0 {
+			fmt.Println("Failed to convert steps value from string to int: ", stepsValueToken[i-1], err.Error())
+		} else {
+			stepsTotal += v
+		}
 
 		// Create a Date object out of the string
-		tmpTime, err := time.Parse(time.DateOnly, tempDateString)
+		tmpTime, err := time.Parse(time.DateOnly, dateTimeToken[1])
 		if err != nil {
 			log.Fatal("Could not parse time: ", err.Error())
 		}
 
-		fmt.Println(tempDateString + " becomes: " + GetDateOnly(tmpTime))
+		var dailyData UserDailyData
+
+		// Save the user and steps data now
+		dailyData.user_id = record[IDX_USER_ID]
+		dailyData.stepsData.steps = stepsTotal
+		m[GetDateOnly(tmpTime)] = dailyData
+
+		fmt.Println(dateTimeToken[1] + " becomes: " + GetDateOnly(tmpTime))
 	}
 
 	return m
 }
 
-func SummarizeCalorie(currentWeekData map[time.Time]UserDailyData, s string) {
+func SummarizeCalorie(currentWeekData map[string]UserDailyData, s string) {
 	fmt.Println("---------Summarizing Calorie Data--------- \n" + s)
 }
 
-func SummarizeHeartRate(currentWeekData map[time.Time]UserDailyData, s string) {
+func SummarizeHeartRate(currentWeekData map[string]UserDailyData, s string) {
 
 	fmt.Println("--------Summarizing Heart Data--------- \n" + s)
 }
 
-func SummarizeSleep(currentWeekData map[time.Time]UserDailyData, s string) {
+func SummarizeSleep(currentWeekData map[string]UserDailyData, s string) {
 	fmt.Println("---------Summarizing Sleep Data--------- \n" + s)
 }
 
-func SummarizeTimeActive(currentWeekData map[time.Time]UserDailyData, s string) {
+func SummarizeTimeActive(currentWeekData map[string]UserDailyData, s string) {
 	fmt.Println("----------Summarizing Activity Data--------- \n" + s)
 }
 
-func SummarizeSteps(currentWeekData map[time.Time]UserDailyData, s string) {
+func SummarizeSteps(currentWeekData map[string]UserDailyData, s string) {
 	fmt.Println("--------Summarizing Steps Data-------- \n" + s)
 }
 
