@@ -180,26 +180,25 @@ type UserDailyData struct {
 	heartData    UserDailyHeartData
 }
 
-func ProcessRecord(user_id string, record []string) {
+func WriteWeekSummary(currentWeekData map[string]UserDailyData, csvWriter *csv.Writer) {
 
-	outputFile := "output/flat_user_" + user_id + ".csv"
-	outFile, err := os.Create(outputFile)
-	if err != nil {
-		log.Fatal("Could not create output file: " + outputFile)
-	}
+	csvWriter.Flush()
+}
 
-	defer outFile.Close()
-	csvWriter := csv.NewWriter(outFile)
-	csvWriter.UseCRLF = false
+func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 
 	// Initialize a structure that represents all of the dates for this week.
-	currentWeekData := GenerateMapForWeek(record)
-	SummarizeSteps(currentWeekData, record[IDX_STEPS])
-	//SummarizeTimeActive(currentWeekData, record[IDX_TIME_ACTIVE])
+	currentWeekData, header := GenerateMapForWeek(record)
+
+	csvWriter.Write(header)
+
+	//SummarizeSteps(currentWeekData, record[IDX_STEPS])
+	SummarizeTimeActive(currentWeekData, record[IDX_TIME_ACTIVE])
 	//SummarizeSleep(currentWeekData, record[IDX_SLEEP])
 	//SummarizeHeartRate(currentWeekData, record[IDX_HEART_RATE])
 	//SummarizeCalorie(currentWeekData, record[IDX_CALORIES_IN])
 
+	WriteWeekSummary(currentWeekData, csvWriter)
 }
 
 func TokenizeSteps(stepsRecord string) []string {
@@ -213,12 +212,14 @@ func TokenizeSteps(stepsRecord string) []string {
 	return stepTokens
 }
 
-func GenerateMapForWeek(record []string) map[string]UserDailyData {
+func GenerateMapForWeek(record []string) (map[string]UserDailyData, []string) {
 	m := make(map[string]UserDailyData)
 
 	if len(record[IDX_STEPS]) == 0 {
 		panic("not done")
 	}
+
+	header := []string{"Date", "user_id", "id", "Week", "Total Steps"}
 
 	// Get a tokenized represenation of the steps record for all 7 days  ["value:0","dateTime:2021-01-16",.......,"value:0","dateTime:2021-01-17"]
 	stepTokens := TokenizeSteps(record[IDX_STEPS])
@@ -249,7 +250,7 @@ func GenerateMapForWeek(record []string) map[string]UserDailyData {
 		fmt.Println(dateTimeToken[1] + " becomes: " + GetDateOnly(tmpTime))
 	}
 
-	return m
+	return m, header
 }
 
 func SummarizeCalorie(currentWeekData map[string]UserDailyData, s string) {
@@ -296,15 +297,25 @@ func main() {
 	//fmt.Print("Enter user_id: ")
 	//fmt.Scan(&user_id)
 
-	outputFile := "output/user_" + user_id + ".csv"
-	outFile, err := os.Create(outputFile)
+	masterUserOutFile := "output/user_" + user_id + ".csv"
+	masterf, err := os.Create(masterUserOutFile)
 	if err != nil {
-		log.Fatal("Could not create output file: " + outputFile)
+		log.Fatal("Could not create output file: " + masterUserOutFile)
 	}
 
-	defer outFile.Close()
-	csvWriter := csv.NewWriter(outFile)
+	defer masterf.Close()
+	csvWriter := csv.NewWriter(masterf)
 	csvWriter.UseCRLF = false
+
+	flatUserOutFile := "output/flat_user_" + user_id + ".csv"
+	flatf, err := os.Create(flatUserOutFile)
+	if err != nil {
+		log.Fatal("Could not create output file: " + flatUserOutFile)
+	}
+
+	defer flatf.Close()
+	csvFlatWriter := csv.NewWriter(flatf)
+	csvFlatWriter.UseCRLF = false
 
 	header := true
 	for {
@@ -326,9 +337,10 @@ func main() {
 			csvWriter.Write(record)
 
 			// Save to the flattened csv output file
-			ProcessRecord(user_id, record)
+			ProcessRecord(user_id, record, csvFlatWriter)
 		}
 	}
 
-	outFile.Close()
+	flatf.Close()
+	masterf.Close()
 }
