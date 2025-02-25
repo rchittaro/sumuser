@@ -222,7 +222,6 @@ func GenerateMapForWeek(record []string) map[string]UserDailyData {
 
 	// Get a tokenized represenation of the steps record for all 7 days  ["value:0","dateTime:2021-01-16",.......,"value:0","dateTime:2021-01-17"]
 	stepTokens := TokenizeSteps(record[IDX_STEPS])
-	stepsTotal := 0
 
 	for i := 1; i < len(stepTokens); i += 2 {
 		dateTimeToken := strings.Split(stepTokens[i], ":")
@@ -231,8 +230,7 @@ func GenerateMapForWeek(record []string) map[string]UserDailyData {
 		v, err := strconv.Atoi(stepsValueToken[1])
 		if err != nil || v < 0 {
 			fmt.Println("Failed to convert steps value from string to int: ", stepsValueToken[i-1], err.Error())
-		} else {
-			stepsTotal += v
+			v = -1
 		}
 
 		// Create a Date object out of the string
@@ -245,7 +243,7 @@ func GenerateMapForWeek(record []string) map[string]UserDailyData {
 
 		// Save the user and steps data now
 		dailyData.user_id = record[IDX_USER_ID]
-		dailyData.stepsData.steps = stepsTotal
+		dailyData.stepsData.steps = v
 		m[GetDateOnly(tmpTime)] = dailyData
 
 		fmt.Println(dateTimeToken[1] + " becomes: " + GetDateOnly(tmpTime))
