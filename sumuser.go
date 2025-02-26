@@ -147,7 +147,7 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 	return found
 }
 
-type UserDailyStepData struct {
+/*type UserDailyStepData struct {
 	header []string
 	steps  int
 }
@@ -169,36 +169,52 @@ type UserDailyHeartData struct {
 }
 
 type UserDailyData struct {
-	header       []string
-	id           string
-	weekNumber   string
-	user_id      string
-	stepsData    UserDailyStepData
-	activityData UserDailyActiveData
-	sleepData    UserDailySleepData
-	calorieData  UserDailyCaloriesData
-	heartData    UserDailyHeartData
+	recordEntry []string
+	id          string
+	weekNumber  string
+	user_id     string
+
+	   stepsData    UserDailyStepData
+	   activityData UserDailyActiveData
+	   sleepData    UserDailySleepData
+	   calorieData  UserDailyCaloriesData
+	   heartData    UserDailyHeartData
+
+}
+*/
+
+type UserDailyRecord struct {
+	dayRecord [7][]string
 }
 
-func WriteWeekSummary(currentWeekData map[string]UserDailyData, csvWriter *csv.Writer) {
+func WriteWeekSummary(dailyRecord *UserDailyRecord, csvWriter *csv.Writer) {
 
-	csvWriter.Flush()
+	for i := range len(dailyRecord.dayRecord) {
+		csvWriter.Write(dailyRecord.dayRecord[i])
+		csvWriter.Flush()
+	}
 }
+
+var flatHeaderWritten bool = false
 
 func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
+	var dailyRecord UserDailyRecord
 
 	// Initialize a structure that represents all of the dates for this week.
-	currentWeekData, header := GenerateMapForWeek(record)
+	header := GenerateMapForWeek(record, &dailyRecord)
 
-	csvWriter.Write(header)
-
-	//SummarizeSteps(currentWeekData, record[IDX_STEPS])
-	SummarizeTimeActive(currentWeekData, record[IDX_TIME_ACTIVE])
+	//SummarizeSteps(currentWeekData, record[IDX_STEPS], &header)
+	//SummarizeTimeActive(currentWeekData, record[IDX_TIME_ACTIVE], &header)
 	//SummarizeSleep(currentWeekData, record[IDX_SLEEP])
 	//SummarizeHeartRate(currentWeekData, record[IDX_HEART_RATE])
 	//SummarizeCalorie(currentWeekData, record[IDX_CALORIES_IN])
 
-	WriteWeekSummary(currentWeekData, csvWriter)
+	if !flatHeaderWritten {
+		flatHeaderWritten = true
+		csvWriter.Write(header)
+	}
+
+	WriteWeekSummary(&dailyRecord, csvWriter)
 }
 
 func TokenizeSteps(stepsRecord string) []string {
@@ -212,8 +228,7 @@ func TokenizeSteps(stepsRecord string) []string {
 	return stepTokens
 }
 
-func GenerateMapForWeek(record []string) (map[string]UserDailyData, []string) {
-	m := make(map[string]UserDailyData)
+func GenerateMapForWeek(record []string, dailyRecord *UserDailyRecord) []string {
 
 	if len(record[IDX_STEPS]) == 0 {
 		panic("not done")
@@ -221,18 +236,13 @@ func GenerateMapForWeek(record []string) (map[string]UserDailyData, []string) {
 
 	header := []string{"Date", "user_id", "id", "Week", "Total Steps"}
 
+	// We do the steps in this function
 	// Get a tokenized represenation of the steps record for all 7 days  ["value:0","dateTime:2021-01-16",.......,"value:0","dateTime:2021-01-17"]
 	stepTokens := TokenizeSteps(record[IDX_STEPS])
 
-	for i := 1; i < len(stepTokens); i += 2 {
+	for i, j := 1, 0; i < len(stepTokens); i, j = i+2, j+1 {
 		dateTimeToken := strings.Split(stepTokens[i], ":")
 		stepsValueToken := strings.Split(stepTokens[i-1], ":")
-
-		v, err := strconv.Atoi(stepsValueToken[1])
-		if err != nil || v < 0 {
-			fmt.Println("Failed to convert steps value from string to int: ", stepsValueToken[i-1], err.Error())
-			v = -1
-		}
 
 		// Create a Date object out of the string
 		tmpTime, err := time.Parse(time.DateOnly, dateTimeToken[1])
@@ -240,19 +250,20 @@ func GenerateMapForWeek(record []string) (map[string]UserDailyData, []string) {
 			log.Fatal("Could not parse time: ", err.Error())
 		}
 
-		var dailyData UserDailyData
+		dailyRecord.dayRecord[j] = make([]string, 5)
+		dailyRecord.dayRecord[j][0] = GetDateOnly(tmpTime)
+		dailyRecord.dayRecord[j][1] = record[IDX_USER_ID]
+		dailyRecord.dayRecord[j][2] = record[IDX_ID]
+		dailyRecord.dayRecord[j][3] = record[IDX_WEEK]
+		dailyRecord.dayRecord[j][4] = stepsValueToken[1]
 
-		// Save the user and steps data now
-		dailyData.user_id = record[IDX_USER_ID]
-		dailyData.stepsData.steps = v
-		m[GetDateOnly(tmpTime)] = dailyData
-
-		fmt.Println(dateTimeToken[1] + " becomes: " + GetDateOnly(tmpTime))
+		fmt.Println(dateTimeToken[1] + " becomes: " + dailyRecord.dayRecord[j][0])
 	}
 
-	return m, header
+	return header
 }
 
+/*
 func SummarizeCalorie(currentWeekData map[string]UserDailyData, s string) {
 	fmt.Println("---------Summarizing Calorie Data--------- \n" + s)
 }
@@ -270,9 +281,10 @@ func SummarizeTimeActive(currentWeekData map[string]UserDailyData, s string) {
 	fmt.Println("----------Summarizing Activity Data--------- \n" + s)
 }
 
-func SummarizeSteps(currentWeekData map[string]UserDailyData, s string) {
-	fmt.Println("--------Summarizing Steps Data-------- \n" + s)
+func SummarizeSteps(currentWeekData map[string]UserDailyData, record string, header *string) {
+	// This doesn't do anything right now
 }
+*/
 
 func main() {
 
@@ -333,10 +345,10 @@ func main() {
 			header = false
 		} else if record[IDX_USER_ID] == user_id {
 
-			// Save the user specific record to the new file...might be useful output
+			// Save the user specific record to the master file...might be useful output
 			csvWriter.Write(record)
 
-			// Save to the flattened csv output file
+			// Process record for the flatten per user CSV
 			ProcessRecord(user_id, record, csvFlatWriter)
 		}
 	}
