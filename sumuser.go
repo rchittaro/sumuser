@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -147,42 +148,6 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 	return found
 }
 
-/*type UserDailyStepData struct {
-	header []string
-	steps  int
-}
-
-type UserDailyActiveData struct {
-	header []string
-}
-
-type UserDailySleepData struct {
-	header []string
-}
-
-type UserDailyCaloriesData struct {
-	header []string
-}
-
-type UserDailyHeartData struct {
-	header []string
-}
-
-type UserDailyData struct {
-	recordEntry []string
-	id          string
-	weekNumber  string
-	user_id     string
-
-	   stepsData    UserDailyStepData
-	   activityData UserDailyActiveData
-	   sleepData    UserDailySleepData
-	   calorieData  UserDailyCaloriesData
-	   heartData    UserDailyHeartData
-
-}
-*/
-
 type UserDailyRecord struct {
 	dayRecord [7][]string
 }
@@ -203,8 +168,10 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 	// Initialize a structure that represents all of the dates for this week.
 	header := GenerateMapForWeek(record, &dailyRecord)
 
+	activeHeader := SummarizeTimeAcitive(record, &dailyRecord)
+	header = slices.Concat(header, activeHeader)
+
 	//SummarizeSteps(currentWeekData, record[IDX_STEPS], &header)
-	//SummarizeTimeActive(currentWeekData, record[IDX_TIME_ACTIVE], &header)
 	//SummarizeSleep(currentWeekData, record[IDX_SLEEP])
 	//SummarizeHeartRate(currentWeekData, record[IDX_HEART_RATE])
 	//SummarizeCalorie(currentWeekData, record[IDX_CALORIES_IN])
@@ -215,6 +182,58 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 	}
 
 	WriteWeekSummary(&dailyRecord, csvWriter)
+}
+
+/*
+{"very": {"activities-minutesVeryActive": [{"value": "0", "dateTime": "2021-08-20"}, {"value": "0", "dateTime": "2021-08-21"}, {"value": "5", "dateTime": "2021-08-22"}, {"value": "0", "dateTime": "2021-08-23"}, {"value": "0", "dateTime": "2021-08-24"}, {"value": "11", "dateTime": "2021-08-25"}, {"value": "0", "dateTime": "2021-08-26"}]},
+"fairly": {"activities-minutesFairlyActive": [{"value": "0", "dateTime": "2021-08-20"}, {"value": "0", "dateTime": "2021-08-21"}, {"value": "3", "dateTime": "2021-08-22"}, {"value": "0", "dateTime": "2021-08-23"}, {"value": "0", "dateTime": "2021-08-24"}, {"value": "13", "dateTime": "2021-08-25"}, {"value": "0", "dateTime": "2021-08-26"}]},
+"lightly": {"activities-minutesLightlyActive": [{"value": "254", "dateTime": "2021-08-20"}, {"value": "294", "dateTime": "2021-08-21"}, {"value": "233", "dateTime": "2021-08-22"}, {"value": "227", "dateTime": "2021-08-23"}, {"value": "165", "dateTime": "2021-08-24"}, {"value": "174", "dateTime": "2021-08-25"}, {"value": "332", "dateTime": "2021-08-26"}]},
+ "sedentary": {"activities-minutesSedentary": [{"value": "631", "dateTime": "2021-08-20"}, {"value": "665", "dateTime": "2021-08-21"}, {"value": "701", "dateTime": "2021-08-22"}, {"value": "840", "dateTime": "2021-08-23"}, {"value": "621", "dateTime": "2021-08-24"}, {"value": "470", "dateTime": "2021-08-25"}, {"value": "781", "dateTime": "2021-08-26"}]}}
+
+"activities-minutesLightlyActive:[value:19,dateTime:2021-01-22,value:209,dateTime:2021-01-23,value:188,dateTime:2021-01-24,value:232,dateTime:2021-01-25,value:315,dateTime:2021-01-26,value:212,dateTime:2021-01-27,value:218,dateTime:2021-01-28],sedentary:activities-minutesSedentary:[value:905,dateTime:2021-01-22,value:1173,dateTime:2021-01-23,value:731,dateTime:2021-01-24,value:550,dateTime:2021-01-25,value:512,dateTime:2021-01-26,value:455,dateTime:2021-01-27,value:583,dateTime:2021-01-28]"
+
+
+*/
+
+func TokenizeActivity(activityRecord string) {
+	s := StripCurlyBrackets(activityRecord)
+	s = StripAllSpaces(s)
+	s = StripByString(s, "\"")
+	s = StripByString(s, "very:")
+
+	veryActive := strings.Split(s, ",fairly:")
+	fairlyActive := strings.Split(veryActive[1], ",lightly:")
+	lightlyActive := strings.Split(fairlyActive[1], ",sedentary:")
+
+	/*fmt.Println("=====Very Active=====\n" + veryActive[0])
+	fmt.Println("=====Fairly Active=====\n" + fairlyActive[0])
+	fmt.Println("=====Lightly Active=====\n" + lightlyActive[0])
+	fmt.Println("=====Sedentary=====\n" + lightlyActive[1]) */
+
+	veryActiveEntries := strings.Split(veryActive[0], ":[")
+	fairlyActiveEntries := strings.Split(fairlyActive[0], ":[")
+	lightlyActiveEntries := strings.Split(lightlyActive[0], ":[")
+	sedentaryActiveEntries := strings.Split(lightlyActive[1], ":[")
+
+	fmt.Println("----Very Active --- ", veryActiveEntries[1])
+	fmt.Println("----Fairly Active --- ", fairlyActiveEntries[1])
+	fmt.Println("----Lightly Active --- ", lightlyActiveEntries[1])
+	fmt.Println("----Sedentary --- ", sedentaryActiveEntries[1])
+
+}
+
+func SummarizeTimeAcitive(record []string, userDailyRecord *UserDailyRecord) []string {
+
+	if len(record[IDX_STEPS]) == 0 {
+		return nil
+	}
+
+	header := []string{"activities-minutesVeryActive", "activities-minutesFairlyActive", "activities-minutesLightlyActive", "activities-minutesSedentary"}
+
+	TokenizeActivity(record[IDX_TIME_ACTIVE])
+	//fmt.Println("==========Active Record============\n" + record[IDX_TIME_ACTIVE])
+
+	return header
 }
 
 func TokenizeSteps(stepsRecord string) []string {
@@ -262,29 +281,6 @@ func GenerateMapForWeek(record []string, dailyRecord *UserDailyRecord) []string 
 
 	return header
 }
-
-/*
-func SummarizeCalorie(currentWeekData map[string]UserDailyData, s string) {
-	fmt.Println("---------Summarizing Calorie Data--------- \n" + s)
-}
-
-func SummarizeHeartRate(currentWeekData map[string]UserDailyData, s string) {
-
-	fmt.Println("--------Summarizing Heart Data--------- \n" + s)
-}
-
-func SummarizeSleep(currentWeekData map[string]UserDailyData, s string) {
-	fmt.Println("---------Summarizing Sleep Data--------- \n" + s)
-}
-
-func SummarizeTimeActive(currentWeekData map[string]UserDailyData, s string) {
-	fmt.Println("----------Summarizing Activity Data--------- \n" + s)
-}
-
-func SummarizeSteps(currentWeekData map[string]UserDailyData, record string, header *string) {
-	// This doesn't do anything right now
-}
-*/
 
 func main() {
 
