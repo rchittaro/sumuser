@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -114,11 +115,6 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 			continue
 		}
 
-		// Normalize record..look for garbage data
-		if !NormalizeRecord(record) {
-			fmt.Println("Discarding Record at line")
-		}
-
 		// Hopefully there is a week 0, with a steps entry somewhere in the file. Fatal if not
 		if !found && record[IDX_WEEK] == "0" && len(record[IDX_STEPS]) > 0 {
 
@@ -141,7 +137,7 @@ func CalculateDateByWeek(startWeek *DatesInWeek) bool {
 				fmt.Println(dateTimeToken[1] + " becomes: " + GetDateOnly(startWeek.dateTime[ct]))
 			}
 
-			found = true
+			return true
 		}
 	}
 
@@ -184,45 +180,58 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 	WriteWeekSummary(&dailyRecord, csvWriter)
 }
 
-/*
-{"very": {"activities-minutesVeryActive": [{"value": "0", "dateTime": "2021-08-20"}, {"value": "0", "dateTime": "2021-08-21"}, {"value": "5", "dateTime": "2021-08-22"}, {"value": "0", "dateTime": "2021-08-23"}, {"value": "0", "dateTime": "2021-08-24"}, {"value": "11", "dateTime": "2021-08-25"}, {"value": "0", "dateTime": "2021-08-26"}]},
-"fairly": {"activities-minutesFairlyActive": [{"value": "0", "dateTime": "2021-08-20"}, {"value": "0", "dateTime": "2021-08-21"}, {"value": "3", "dateTime": "2021-08-22"}, {"value": "0", "dateTime": "2021-08-23"}, {"value": "0", "dateTime": "2021-08-24"}, {"value": "13", "dateTime": "2021-08-25"}, {"value": "0", "dateTime": "2021-08-26"}]},
-"lightly": {"activities-minutesLightlyActive": [{"value": "254", "dateTime": "2021-08-20"}, {"value": "294", "dateTime": "2021-08-21"}, {"value": "233", "dateTime": "2021-08-22"}, {"value": "227", "dateTime": "2021-08-23"}, {"value": "165", "dateTime": "2021-08-24"}, {"value": "174", "dateTime": "2021-08-25"}, {"value": "332", "dateTime": "2021-08-26"}]},
- "sedentary": {"activities-minutesSedentary": [{"value": "631", "dateTime": "2021-08-20"}, {"value": "665", "dateTime": "2021-08-21"}, {"value": "701", "dateTime": "2021-08-22"}, {"value": "840", "dateTime": "2021-08-23"}, {"value": "621", "dateTime": "2021-08-24"}, {"value": "470", "dateTime": "2021-08-25"}, {"value": "781", "dateTime": "2021-08-26"}]}}
+func TokenizeActivity(activityRecord string) ([]string, []string, []string, []string, error) {
 
-"activities-minutesLightlyActive:[value:19,dateTime:2021-01-22,value:209,dateTime:2021-01-23,value:188,dateTime:2021-01-24,value:232,dateTime:2021-01-25,value:315,dateTime:2021-01-26,value:212,dateTime:2021-01-27,value:218,dateTime:2021-01-28],sedentary:activities-minutesSedentary:[value:905,dateTime:2021-01-22,value:1173,dateTime:2021-01-23,value:731,dateTime:2021-01-24,value:550,dateTime:2021-01-25,value:512,dateTime:2021-01-26,value:455,dateTime:2021-01-27,value:583,dateTime:2021-01-28]"
-
-
-*/
-
-func TokenizeActivity(activityRecord string) {
+	// Do some basic normalization
 	s := StripCurlyBrackets(activityRecord)
 	s = StripAllSpaces(s)
 	s = StripByString(s, "\"")
 	s = StripByString(s, "very:")
 
+	// Split up entry by activity type
 	veryActive := strings.Split(s, ",fairly:")
 	fairlyActive := strings.Split(veryActive[1], ",lightly:")
 	lightlyActive := strings.Split(fairlyActive[1], ",sedentary:")
+
+	if len(veryActive) != 2 || len(fairlyActive) != 2 || len(lightlyActive) != 2 {
+		return nil, nil, nil, nil, errors.New("malformed activity record")
+	}
 
 	/*fmt.Println("=====Very Active=====\n" + veryActive[0])
 	fmt.Println("=====Fairly Active=====\n" + fairlyActive[0])
 	fmt.Println("=====Lightly Active=====\n" + lightlyActive[0])
 	fmt.Println("=====Sedentary=====\n" + lightlyActive[1]) */
 
+	// Isolate value:date by activity type
 	veryActiveEntries := strings.Split(veryActive[0], ":[")
 	fairlyActiveEntries := strings.Split(fairlyActive[0], ":[")
 	lightlyActiveEntries := strings.Split(lightlyActive[0], ":[")
 	sedentaryActiveEntries := strings.Split(lightlyActive[1], ":[")
 
-	fmt.Println("----Very Active --- ", veryActiveEntries[1])
+	if len(veryActiveEntries) != 2 || len(fairlyActiveEntries) != 2 || len(lightlyActiveEntries) != 2 || len(sedentaryActiveEntries) != 2 {
+		return nil, nil, nil, nil, errors.New("malformed activity section")
+	}
+
+	/*fmt.Println("----Very Active --- ", veryActiveEntries[1])
 	fmt.Println("----Fairly Active --- ", fairlyActiveEntries[1])
 	fmt.Println("----Lightly Active --- ", lightlyActiveEntries[1])
-	fmt.Println("----Sedentary --- ", sedentaryActiveEntries[1])
+	fmt.Println("----Sedentary --- ", sedentaryActiveEntries[1]) */
+
+	// Flatten into tokens
+	veryActiveTokens := strings.Split(veryActiveEntries[1], ",")
+	fairlyActiveTokens := strings.Split(fairlyActiveEntries[1], ",")
+	lightlyActiveTokens := strings.Split(lightlyActiveEntries[1], ",")
+	sedentaryTokens := strings.Split(sedentaryActiveEntries[1], ",")
+
+	if len(veryActiveTokens) != 14 || len(fairlyActiveTokens) != 14 || len(lightlyActiveTokens) != 14 || len(sedentaryTokens) != 14 {
+		return nil, nil, nil, nil, errors.New("malformed activity token")
+	}
+
+	return veryActiveTokens, fairlyActiveTokens, lightlyActiveTokens, sedentaryTokens, nil
 
 }
 
-func SummarizeTimeAcitive(record []string, userDailyRecord *UserDailyRecord) []string {
+func SummarizeTimeAcitive(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
 
 	if len(record[IDX_STEPS]) == 0 {
 		return nil
@@ -230,8 +239,10 @@ func SummarizeTimeAcitive(record []string, userDailyRecord *UserDailyRecord) []s
 
 	header := []string{"activities-minutesVeryActive", "activities-minutesFairlyActive", "activities-minutesLightlyActive", "activities-minutesSedentary"}
 
-	TokenizeActivity(record[IDX_TIME_ACTIVE])
-	//fmt.Println("==========Active Record============\n" + record[IDX_TIME_ACTIVE])
+	veryActiveTokens, fairlyActiveTokens, lightlyActiveTokens, sedentaryTokens, err := TokenizeActivity(record[IDX_TIME_ACTIVE])
+	if err != nil {
+		return nil, err
+	}
 
 	return header
 }
