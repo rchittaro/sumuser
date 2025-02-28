@@ -164,13 +164,14 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 	// Initialize a structure that represents all of the dates for this week.
 	header := GenerateMapForWeek(record, &dailyRecord)
 
-	activeHeader := SummarizeTimeAcitive(record, &dailyRecord)
-	header = slices.Concat(header, activeHeader)
+	activeHeader, err := SummarizeTimeActive(record, &dailyRecord)
 
-	//SummarizeSteps(currentWeekData, record[IDX_STEPS], &header)
-	//SummarizeSleep(currentWeekData, record[IDX_SLEEP])
-	//SummarizeHeartRate(currentWeekData, record[IDX_HEART_RATE])
-	//SummarizeCalorie(currentWeekData, record[IDX_CALORIES_IN])
+	if err != nil {
+		fmt.Println("Ignoring record ", err.Error())
+		return
+	}
+
+	header = slices.Concat(header, activeHeader)
 
 	if !flatHeaderWritten {
 		flatHeaderWritten = true
@@ -231,10 +232,10 @@ func TokenizeActivity(activityRecord string) ([]string, []string, []string, []st
 
 }
 
-func SummarizeTimeAcitive(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
+func SummarizeTimeActive(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
 
 	if len(record[IDX_STEPS]) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	header := []string{"activities-minutesVeryActive", "activities-minutesFairlyActive", "activities-minutesLightlyActive", "activities-minutesSedentary"}
@@ -244,7 +245,57 @@ func SummarizeTimeAcitive(record []string, userDailyRecord *UserDailyRecord) ([]
 		return nil, err
 	}
 
-	return header
+	/*	fmt.Println("Very Active Tokens: ", veryActiveTokens)
+		fmt.Println("Fairly Active Tokens: ", fairlyActiveTokens)
+		fmt.Println("Lightly: ", lightlyActiveTokens)
+		fmt.Println("Sedentary: ", sedentaryTokens)
+	*/
+
+	EmitEntryFromWeeklyTokens(userDailyRecord, veryActiveTokens, fairlyActiveTokens, lightlyActiveTokens, sedentaryTokens)
+
+	return header, nil
+}
+
+func EmitValueDateFromTokenSlice(tokenSlice []string) ([]string, []string) {
+
+	dateSlice := make([]string, 7)
+	valSlice := make([]string, 7)
+
+	for i, j := 1, 0; i < len(tokenSlice); i, j = i+2, j+1 {
+		dateToken := strings.Split(tokenSlice[i], ":")
+		valueToken := strings.Split(tokenSlice[i-1], ":")
+
+		// Create a Date object out of the string
+		tmpTime, err := time.Parse(time.DateOnly, strings.Trim(dateToken[1], "]"))
+		if err != nil {
+			log.Fatal("Could not parse time: ", err.Error())
+		}
+
+		dateSlice[j] = GetDateOnly(tmpTime)
+		valSlice[j] = valueToken[1]
+
+		fmt.Println("Date is: ", dateSlice[j], "Value is: ", valSlice[j])
+	}
+
+	return dateSlice, valSlice
+}
+
+func EmitEntryFromWeeklyTokens(userDailyRecord *UserDailyRecord, tokens ...[]string) {
+
+	for _, tokenArg := range tokens {
+		fmt.Println(tokenArg)
+		dateSlice, valSlice := EmitValueDateFromTokenSlice(tokenArg)
+
+		for i := 0; i < len(dateSlice); i++ {
+
+			// Validate the dates and the assumption on the input format match. Fatal error otherwise
+			if strings.Compare(userDailyRecord.dayRecord[i][0], dateSlice[i]) != 0 {
+				panic("Dates do not match")
+			}
+
+			userDailyRecord.dayRecord[i] = append(userDailyRecord.dayRecord[i], valSlice[i])
+		}
+	}
 }
 
 func TokenizeSteps(stepsRecord string) []string {
