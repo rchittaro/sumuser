@@ -188,13 +188,41 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 		fmt.Println("Heart data, ignoring record: ", err.Error())
 	}
 
+	caloriesHeader, err := SummarizeCalories(record, &dailyRecord)
+	if err != nil {
+		fmt.Println("Calories data, ignoring record: ", err.Error())
+	}
+
 	if !flatHeaderWritten {
-		header = slices.Concat(header, activeHeader, sleepHeader, heartHeader)
+		header = slices.Concat(header, activeHeader, sleepHeader, heartHeader, caloriesHeader)
 		flatHeaderWritten = true
 		csvWriter.Write(header)
 	}
 
 	WriteWeekSummary(&dailyRecord, csvWriter)
+}
+
+func SummarizeCalories(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
+
+	if len(record[IDX_HEART_RATE]) == 0 {
+		return nil, nil
+	}
+
+	caloriesRecord := StripAllSpaces(record[IDX_CALORIES_IN])
+	caloriesRecord = StripByString(caloriesRecord, "\\")
+	caloriesRecord = StripByString(caloriesRecord, "\"")
+
+	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_CALORIES] + "calories_user_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
+	if err != nil {
+		log.Fatal("calories output file", err)
+	}
+
+	defer file.Close()
+
+	fmt.Println(caloriesRecord)
+	file.WriteString(caloriesRecord)
+	file.Close()
+	return nil, nil
 }
 
 func SummarizeHeartRate(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
@@ -207,9 +235,9 @@ func SummarizeHeartRate(record []string, userDailyRecord *UserDailyRecord) ([]st
 	heartRecord = StripByString(heartRecord, "\\")
 	heartRecord = StripByString(heartRecord, "\"")
 
-	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_HEART] + "heart_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
+	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_HEART] + "heart_user_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
 	if err != nil {
-		log.Fatal("sleep output file", err)
+		log.Fatal("heartrate output file", err)
 	}
 
 	defer file.Close()
@@ -230,7 +258,7 @@ func SummarizeSleep(record []string, userDailyRecord *UserDailyRecord) ([]string
 	sleepRecord = StripByString(sleepRecord, "\\")
 	sleepRecord = StripByString(sleepRecord, "\"")
 
-	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_SLEEP] + "sleep_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
+	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_SLEEP] + "sleep_user_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
 	if err != nil {
 		log.Fatal("sleep output file", err)
 	}
