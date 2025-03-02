@@ -203,7 +203,7 @@ func SummarizeHeartRate(record []string, userDailyRecord *UserDailyRecord) ([]st
 		return nil, nil
 	}
 
-	heartRecord := StripAllSpaces(record[IDX_SLEEP])
+	heartRecord := StripAllSpaces(record[IDX_HEART_RATE])
 	heartRecord = StripByString(heartRecord, "\\")
 	heartRecord = StripByString(heartRecord, "\"")
 
