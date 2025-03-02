@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+var OUTPUT_ROOT string = "./"
+var OUTPUT_SLEEP_DIR string = "sleep"
+
+const OUTPUT_DIR string = "output"
 const WEEKLY_LOG_FILE string = "data/weekly_logs.csv"
 
 // Index of fields from the weekly logs
@@ -165,20 +169,46 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 	header := GenerateMapForWeek(record, &dailyRecord)
 
 	activeHeader, err := SummarizeTimeActive(record, &dailyRecord)
-
 	if err != nil {
 		fmt.Println("Ignoring record ", err.Error())
 		return
 	}
 
-	header = slices.Concat(header, activeHeader)
+	sleepHeader, err := SummarizeSleep(record, &dailyRecord)
+	if err != nil {
+		fmt.Println("Ignoring record: ", err.Error())
+	}
 
 	if !flatHeaderWritten {
+		header = slices.Concat(header, activeHeader, sleepHeader)
 		flatHeaderWritten = true
 		csvWriter.Write(header)
 	}
 
 	WriteWeekSummary(&dailyRecord, csvWriter)
+}
+
+func SummarizeSleep(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
+
+	if len(record[IDX_SLEEP]) == 0 {
+		return nil, nil
+	}
+
+	sleepRecord := StripAllSpaces(record[IDX_SLEEP])
+	sleepRecord = StripByString(sleepRecord, "\\")
+	sleepRecord = StripByString(sleepRecord, "\"")
+
+	file, err := os.Create(OUTPUT_SLEEP_DIR + "sleep_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
+	if err != nil {
+		log.Fatal("sleep output file", err)
+	}
+
+	defer file.Close()
+
+	fmt.Println(sleepRecord)
+	file.WriteString(sleepRecord)
+	file.Close()
+	return nil, nil
 }
 
 func TokenizeActivity(activityRecord string) ([]string, []string, []string, []string, error) {
@@ -245,14 +275,7 @@ func SummarizeTimeActive(record []string, userDailyRecord *UserDailyRecord) ([]s
 		return nil, err
 	}
 
-	/*	fmt.Println("Very Active Tokens: ", veryActiveTokens)
-		fmt.Println("Fairly Active Tokens: ", fairlyActiveTokens)
-		fmt.Println("Lightly: ", lightlyActiveTokens)
-		fmt.Println("Sedentary: ", sedentaryTokens)
-	*/
-
 	EmitEntryFromWeeklyTokens(userDailyRecord, veryActiveTokens, fairlyActiveTokens, lightlyActiveTokens, sedentaryTokens)
-
 	return header, nil
 }
 
@@ -367,7 +390,15 @@ func main() {
 	//fmt.Print("Enter user_id: ")
 	//fmt.Scan(&user_id)
 
-	masterUserOutFile := "output/user_" + user_id + ".csv"
+	OUTPUT_ROOT = OUTPUT_ROOT + OUTPUT_DIR + "/" + user_id + "/"
+	OUTPUT_SLEEP_DIR = OUTPUT_ROOT + "sleep/"
+
+	err = os.MkdirAll(OUTPUT_SLEEP_DIR, 0755)
+	if err != nil {
+		log.Fatal("Could not create directory: ", OUTPUT_ROOT+OUTPUT_SLEEP_DIR)
+	}
+
+	masterUserOutFile := OUTPUT_ROOT + "user_" + user_id + ".csv"
 	masterf, err := os.Create(masterUserOutFile)
 	if err != nil {
 		log.Fatal("Could not create output file: " + masterUserOutFile)
@@ -377,7 +408,7 @@ func main() {
 	csvWriter := csv.NewWriter(masterf)
 	csvWriter.UseCRLF = false
 
-	flatUserOutFile := "output/flat_user_" + user_id + ".csv"
+	flatUserOutFile := OUTPUT_ROOT + "flat_user_" + user_id + ".csv"
 	flatf, err := os.Create(flatUserOutFile)
 	if err != nil {
 		log.Fatal("Could not create output file: " + flatUserOutFile)
@@ -393,13 +424,26 @@ func main() {
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			fmt.Println("Error:", err)
 			continue
 		}
 
 		if header {
-			csvWriter.Write(record)
+
+			isHeaderEntryValid := func(x string) bool { return len(x) > 0 }
+
+			i := 0
+			for _, h := range record {
+				if isHeaderEntryValid(h) {
+					i++
+				} else {
+					break
+				}
+			}
+
+			csvWriter.Write(record[:i])
 			header = false
 		} else if record[IDX_USER_ID] == user_id {
 
