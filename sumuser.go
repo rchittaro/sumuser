@@ -13,11 +13,15 @@ import (
 	"time"
 )
 
-var OUTPUT_ROOT string = "./"
-var OUTPUT_SLEEP_DIR string = "sleep"
-
-const OUTPUT_DIR string = "output"
+const OUTPUT_BASE_DIR string = "./output/"
 const WEEKLY_LOG_FILE string = "data/weekly_logs.csv"
+
+var outputUserBaseDir string = OUTPUT_BASE_DIR
+var outputDirs = []string{"sleep/", "heart/", "calories/"}
+
+const IDX_OUT_SLEEP = 0
+const IDX_OUT_HEART = 1
+const IDX_OUT_CALORIES = 2
 
 // Index of fields from the weekly logs
 const IDX_ID int = 0
@@ -179,13 +183,41 @@ func ProcessRecord(user_id string, record []string, csvWriter *csv.Writer) {
 		fmt.Println("Ignoring record: ", err.Error())
 	}
 
+	heartHeader, err := SummarizeHeartRate(record, &dailyRecord)
+	if err != nil {
+		fmt.Println("Heart data, ignoring record: ", err.Error())
+	}
+
 	if !flatHeaderWritten {
-		header = slices.Concat(header, activeHeader, sleepHeader)
+		header = slices.Concat(header, activeHeader, sleepHeader, heartHeader)
 		flatHeaderWritten = true
 		csvWriter.Write(header)
 	}
 
 	WriteWeekSummary(&dailyRecord, csvWriter)
+}
+
+func SummarizeHeartRate(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
+
+	if len(record[IDX_HEART_RATE]) == 0 {
+		return nil, nil
+	}
+
+	heartRecord := StripAllSpaces(record[IDX_SLEEP])
+	heartRecord = StripByString(heartRecord, "\\")
+	heartRecord = StripByString(heartRecord, "\"")
+
+	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_HEART] + "heart_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
+	if err != nil {
+		log.Fatal("sleep output file", err)
+	}
+
+	defer file.Close()
+
+	fmt.Println(heartRecord)
+	file.WriteString(heartRecord)
+	file.Close()
+	return nil, nil
 }
 
 func SummarizeSleep(record []string, userDailyRecord *UserDailyRecord) ([]string, error) {
@@ -198,7 +230,7 @@ func SummarizeSleep(record []string, userDailyRecord *UserDailyRecord) ([]string
 	sleepRecord = StripByString(sleepRecord, "\\")
 	sleepRecord = StripByString(sleepRecord, "\"")
 
-	file, err := os.Create(OUTPUT_SLEEP_DIR + "sleep_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
+	file, err := os.Create(outputUserBaseDir + outputDirs[IDX_OUT_SLEEP] + "sleep_" + record[IDX_USER_ID] + "_week_" + record[IDX_WEEK] + ".txt")
 	if err != nil {
 		log.Fatal("sleep output file", err)
 	}
@@ -367,6 +399,19 @@ func GenerateMapForWeek(record []string, dailyRecord *UserDailyRecord) []string 
 	return header
 }
 
+func MakeOutputDirs(user_id string) {
+
+	outputUserBaseDir = OUTPUT_BASE_DIR + user_id + "/"
+
+	for _, x := range outputDirs {
+		err := os.MkdirAll(outputUserBaseDir+x, 0755)
+		if err != nil {
+			log.Fatal("Could not create directory: ", outputUserBaseDir+x)
+		}
+	}
+
+}
+
 func main() {
 
 	// First scan the file to initialize our week and date range
@@ -390,15 +435,9 @@ func main() {
 	//fmt.Print("Enter user_id: ")
 	//fmt.Scan(&user_id)
 
-	OUTPUT_ROOT = OUTPUT_ROOT + OUTPUT_DIR + "/" + user_id + "/"
-	OUTPUT_SLEEP_DIR = OUTPUT_ROOT + "sleep/"
+	MakeOutputDirs(user_id)
 
-	err = os.MkdirAll(OUTPUT_SLEEP_DIR, 0755)
-	if err != nil {
-		log.Fatal("Could not create directory: ", OUTPUT_ROOT+OUTPUT_SLEEP_DIR)
-	}
-
-	masterUserOutFile := OUTPUT_ROOT + "user_" + user_id + ".csv"
+	masterUserOutFile := outputUserBaseDir + "user_" + user_id + ".csv"
 	masterf, err := os.Create(masterUserOutFile)
 	if err != nil {
 		log.Fatal("Could not create output file: " + masterUserOutFile)
@@ -408,7 +447,7 @@ func main() {
 	csvWriter := csv.NewWriter(masterf)
 	csvWriter.UseCRLF = false
 
-	flatUserOutFile := OUTPUT_ROOT + "flat_user_" + user_id + ".csv"
+	flatUserOutFile := outputUserBaseDir + "flat_user_" + user_id + ".csv"
 	flatf, err := os.Create(flatUserOutFile)
 	if err != nil {
 		log.Fatal("Could not create output file: " + flatUserOutFile)
