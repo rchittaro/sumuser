@@ -460,8 +460,8 @@ func main() {
 
 	// Get user_id from user
 	user_id := "55"
-	//fmt.Print("Enter user_id: ")
-	//fmt.Scan(&user_id)
+	fmt.Print("Enter user_id: ")
+	fmt.Scan(&user_id)
 
 	MakeOutputDirs(user_id)
 
