@@ -16,19 +16,19 @@ There are a set of already compiled programs organized by the target host (Mac/W
 laptop or host. 
 
 bin <br>
-├── Apple
-│   ├── amd64
-│   │   └── sumuser
-│   └── arm64
-│       └── sumuser (Likely for anyone with a recent Mac)
-├── Linux
-│   └── amd64
-│       └── sumuser (Any 64-bit Linux)
-└── Windows
-    ├── amd64
-    │   └── sumuser (Likely for anyone with a recent Windows laptop)
-    └── x86
-        └── sumuser
+├── Apple <br>
+│   ├── amd64 <br>
+│   │   └── sumuser <br>
+│   └── arm64 <br>
+│       └── sumuser (Likely for anyone with a recent Mac) <br>
+├── Linux <br>
+│   └── amd64 <br>
+│       └── sumuser (Any 64-bit Linux) <br>
+└── Windows <br>
+    ├── amd64 <br>
+    │   └── sumuser (Likely for anyone with a recent Windows laptop) <br>
+    └── x86 <br>
+        └── sumuser <br>
 
 
 ## How to Run sumuser
