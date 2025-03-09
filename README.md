@@ -40,3 +40,41 @@ bin
    ./sumuser 55
 
 ## Output
+
+The application will produce the following folder output for the example user_id '55'. 
+
+
+output/
+└── 55
+    ├── calories (raw data for calories separated by week)
+    │   ├── calories_user_55_week_17.txt
+    │   ├── calories_user_55_week_23.txt
+    │   ├── calories_user_55_week_24.txt
+    │   ├── calories_user_55_week_28.txt
+    │   ├── calories_user_55_week_31.txt
+    │   └── calories_user_55_week_46.txt
+    ├── flat_user_55.csv (Summarized flattened user id file. This file will over time contain more and more summarized data)
+    ├── heart (raw data for heart separated by week)
+    │   ├── heart_user_55_week_17.txt
+    │   ├── heart_user_55_week_23.txt
+    │   ├── heart_user_55_week_24.txt
+    │   ├── heart_user_55_week_28.txt
+    │   ├── heart_user_55_week_31.txt
+    │   └── heart_user_55_week_46.txt
+    ├── sleep (raw data for sleep separated by week)
+    │   ├── sleep_user_55_week_16.txt
+    │   ├── sleep_user_55_week_17.txt
+    │   ├── sleep_user_55_week_18.txt
+    │   ├── sleep_user_55_week_19.txt
+    │   ├── sleep_user_55_week_21.txt
+    │   ├── sleep_user_55_week_22.txt
+    │   ├── sleep_user_55_week_23.txt
+    │   ├── sleep_user_55_week_24.txt
+    │   ├── sleep_user_55_week_25.txt
+    │   ├── sleep_user_55_week_26.txt
+    │   ├── sleep_user_55_week_28.txt
+    │   ├── sleep_user_55_week_31.txt
+    │   ├── sleep_user_55_week_33.txt
+    │   ├── sleep_user_55_week_35.txt
+    │   └── sleep_user_55_week_46.txt
+    └── user_55.csv (all raw user_id 55 data)
