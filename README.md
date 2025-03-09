@@ -29,8 +29,8 @@ bin/Windows/x86/sumuser
 - Open a terminal in the folder where you put the sumuser application
 - It is expected there is a folder called 'data' within the application folder
 - In the 'data' folder put your weekly log file and call it 'weekly_logs.csv'
-- From the terminal simply run sumuser and give it the user_id you want to summarize. For example, for user_id 55
-   ./sumuser 55
+- From the terminal simply run sumuser and give it the user_id you want to summarize. For example, for user_id 55 <br>
+   go run . 55
 
 ## Output
 
