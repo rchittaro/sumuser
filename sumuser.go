@@ -442,6 +442,15 @@ func MakeOutputDirs(user_id string) {
 
 func main() {
 
+	argsWithoutProg := os.Args[1:]
+
+	if len(argsWithoutProg) == 0 {
+		fmt.Println("Missing user-id argument")
+		os.Exit(1)
+	}
+
+	user_id := argsWithoutProg[0]
+
 	// First scan the file to initialize our week and date range
 	if !CalculateDateByWeek(&startWeek) {
 		// We couldn't figure it out
@@ -459,9 +468,9 @@ func main() {
 	csvReader.TrimLeadingSpace = true
 
 	// Get user_id from user
-	user_id := "55"
-	fmt.Print("Enter user_id: ")
-	fmt.Scan(&user_id)
+
+	//fmt.Print("Enter user_id: ")
+	//fmt.Scan(&user_id)
 
 	MakeOutputDirs(user_id)
 
