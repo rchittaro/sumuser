@@ -15,20 +15,12 @@ platform (Mac/Windows/Linux). https://go.dev/doc/install
 There are a set of already compiled programs organized by the target host (Mac/Windows/Linux) where it will executed. Just grab the one that matches your 
 laptop or host. 
 
-bin <br>
-├── Apple <br>
-│			├── amd64 <br>
-│			│		└── sumuser <br>
-│			└── arm64 <br>
-│					 └── sumuser (Likely for anyone with a recent Mac) <br>
-├── Linux <br>
-│   └── amd64 <br>
-│       └── sumuser (Any 64-bit Linux) <br>
-└── Windows <br>
-    ├── amd64 <br>
-    │   └── sumuser (Likely for anyone with a recent Windows laptop) <br>
-    └── x86 <br>
-        └── sumuser <br>
+bin/Apple/amd64/sumuser
+bin/Apple/arm64/sumuser (Most likely for any recent Mac)
+bin/Linux/amd64/sumuser
+bin/Windows/amd64/sumuser (Most likely for any recent Windows)
+bin/Windows/x86/sumuser
+
 
 
 ## How to Run sumuser
@@ -47,34 +39,7 @@ The application will produce the following folder output for the example user_id
 output/
 └── 55
     ├── calories (raw data for calories separated by week)
-    │   ├── calories_user_55_week_17.txt
-    │   ├── calories_user_55_week_23.txt
-    │   ├── calories_user_55_week_24.txt
-    │   ├── calories_user_55_week_28.txt
-    │   ├── calories_user_55_week_31.txt
-    │   └── calories_user_55_week_46.txt
     ├── flat_user_55.csv (Summarized flattened user id file. This file will over time contain more and more summarized data)
     ├── heart (raw data for heart separated by week)
-    │   ├── heart_user_55_week_17.txt
-    │   ├── heart_user_55_week_23.txt
-    │   ├── heart_user_55_week_24.txt
-    │   ├── heart_user_55_week_28.txt
-    │   ├── heart_user_55_week_31.txt
-    │   └── heart_user_55_week_46.txt
     ├── sleep (raw data for sleep separated by week)
-    │   ├── sleep_user_55_week_16.txt
-    │   ├── sleep_user_55_week_17.txt
-    │   ├── sleep_user_55_week_18.txt
-    │   ├── sleep_user_55_week_19.txt
-    │   ├── sleep_user_55_week_21.txt
-    │   ├── sleep_user_55_week_22.txt
-    │   ├── sleep_user_55_week_23.txt
-    │   ├── sleep_user_55_week_24.txt
-    │   ├── sleep_user_55_week_25.txt
-    │   ├── sleep_user_55_week_26.txt
-    │   ├── sleep_user_55_week_28.txt
-    │   ├── sleep_user_55_week_31.txt
-    │   ├── sleep_user_55_week_33.txt
-    │   ├── sleep_user_55_week_35.txt
-    │   └── sleep_user_55_week_46.txt
     └── user_55.csv (all raw user_id 55 data)
