@@ -14,8 +14,8 @@ platform (Mac/Windows/Linux). https://go.dev/doc/install
 ## How to Run sumuser
 
 - Open a terminal in the folder where you put the sumuser application
-- It is expected there is a folder called 'data' within the application folder
-- In the 'data' folder put your weekly log file and call it 'weekly_logs.csv'
+- You will need to create a folder called <b>data</b>  
+- In the <b>data</b> folder put your weekly log file. It <b>MUST</b> be called weekly_logs.csv
 - From the terminal simply run sumuser and give it the user_id you want to summarize. For example, for user_id 55 <br>
    % <b> go run . 55 </b>
 
