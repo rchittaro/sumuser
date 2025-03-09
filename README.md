@@ -12,16 +12,17 @@ platform (Mac/Windows/Linux). https://go.dev/doc/install
 
 ## Download sumuser Application Only - Suggested
 
-There are a set of already compiled programs organized by the target host (Mac/Windows/Linux) where it will executed. Just grab the one that matches your 
-laptop or host. 
+There are a set of already compiled programs organized by the target host (Mac/Windows/Linux) where it will executed. Just grab the one that matches your laptop or host.  
 
 bin/Apple/amd64/sumuser
+
 bin/Apple/arm64/sumuser (Most likely for any recent Mac)
+
 bin/Linux/amd64/sumuser
+
 bin/Windows/amd64/sumuser (Most likely for any recent Windows)
+
 bin/Windows/x86/sumuser
-
-
 
 ## How to Run sumuser
 
@@ -36,10 +37,10 @@ bin/Windows/x86/sumuser
 The application will produce the following folder output for the example user_id '55'. 
 
 
-output/
-└── 55
-    ├── calories (raw data for calories separated by week)
-    ├── flat_user_55.csv (Summarized flattened user id file. This file will over time contain more and more summarized data)
-    ├── heart (raw data for heart separated by week)
-    ├── sleep (raw data for sleep separated by week)
-    └── user_55.csv (all raw user_id 55 data)
+output/ <br>
+└── 55 <br>
+    ├── calories (raw data for calories separated by week) <br>
+    ├── flat_user_55.csv (Summarized flattened user id file. This file will over time contain more and more summarized data) <br>
+    ├── heart (raw data for heart separated by week) <br>
+    ├── sleep (raw data for sleep separated by week) <br>
+    └── user_55.csv (all raw user_id 55 data) <br>
