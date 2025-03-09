@@ -17,10 +17,10 @@ laptop or host.
 
 bin <br>
 ├── Apple <br>
-│   ├── amd64 <br>
-│   │   └── sumuser <br>
-│   └── arm64 <br>
-│       └── sumuser (Likely for anyone with a recent Mac) <br>
+│   	├── amd64 <br>
+│   	│   └── sumuser <br>
+│   	└── arm64 <br>
+│      		 └── sumuser (Likely for anyone with a recent Mac) <br>
 ├── Linux <br>
 │   └── amd64 <br>
 │       └── sumuser (Any 64-bit Linux) <br>
