@@ -15,7 +15,7 @@ platform (Mac/Windows/Linux). https://go.dev/doc/install
 There are a set of already compiled programs organized by the target host (Mac/Windows/Linux) where it will executed. Just grab the one that matches your 
 laptop or host. 
 
-bin
+bin <br>
 ├── Apple
 │   ├── amd64
 │   │   └── sumuser
